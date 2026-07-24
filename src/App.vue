@@ -1,6 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-import { countries } from './data/countries.js';
+import { ref, shallowRef, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { GlobeEngine } from './lib/globe.js';
 import { prepareCountry, formatArea, stretchFactor } from './lib/geo.js';
 
@@ -11,13 +10,16 @@ const selectedId = ref('');
 const readout = ref(null); // { lat, lng, stretch }
 const autoRotate = ref(true);
 const dragged = ref(false);
+const loading = ref(true);
 
-const byId = new Map(countries.map((c) => [c.id, c]));
-const selected = computed(() => byId.get(selectedId.value) || null);
+// shallowRef: большой массив стран не оборачиваем в глубокую реактивность
+const countries = shallowRef([]);
+const byId = shallowRef(new Map());
+const presets = shallowRef([]);
+const selected = computed(() => byId.value.get(selectedId.value) || null);
 
 // Классические примеры искажения проекции Меркатора
 const presetIds = ['RUS', 'GRL', 'CAN', 'USA', 'BRA', 'AUS', 'IND'];
-const presets = presetIds.map((id) => byId.get(id)).filter(Boolean);
 
 const latText = computed(() => (readout.value ? Math.round(readout.value.lat) : 0));
 const stretchText = computed(() =>
@@ -33,7 +35,7 @@ const showHomeFact = computed(() => selected.value && Math.abs(selected.value.ce
 
 watch(selectedId, (id) => {
   if (!engine) return;
-  const c = byId.get(id);
+  const c = byId.value.get(id);
   dragged.value = false;
   if (!c) {
     engine.clearSelection();
@@ -56,14 +58,23 @@ function toggleRotate() {
   engine.setAutoRotate(autoRotate.value);
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // сразу показываем глобус (океан + сетка), пока грузятся данные стран
   engine = new GlobeEngine(globeEl.value);
   engine.init();
-  engine.setBaseCountries(countries);
   engine.onMove = (m) => {
     readout.value = m;
     if (m && Math.abs(m.lat - (selected.value?.centroid[1] ?? m.lat)) > 0.5) dragged.value = true;
   };
+
+  // данные стран (~1.4 МБ) грузим отдельным чанком, не блокируя первый рендер
+  const mod = await import('./data/countries.js');
+  const list = mod.countries;
+  countries.value = list;
+  byId.value = new Map(list.map((c) => [c.id, c]));
+  presets.value = presetIds.map((id) => byId.value.get(id)).filter(Boolean);
+  engine.setBaseCountries(list);
+  loading.value = false;
 });
 
 onBeforeUnmount(() => engine && engine.dispose());
@@ -78,14 +89,22 @@ onBeforeUnmount(() => engine && engine.dispose());
       <p class="masthead-sub">
         Истинные размеры стран на вращающемся глобусе — без искажений плоских карт
       </p>
+      <span class="data-badge" title="Границы и состав стран приведены к 2011 году">
+        <svg class="data-badge-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="4.5" width="18" height="16" rx="2.5" />
+          <path d="M3 9h18M8 2.5v4M16 2.5v4" />
+          <path d="M7.5 13.5h3v3h-3z" fill="currentColor" stroke="none" />
+        </svg>
+        Сформировано на основе данных от 2011&nbsp;года
+      </span>
     </header>
 
     <main class="panel" aria-label="Управление сравнением размеров стран">
       <section class="panel-block">
         <label class="field-label" for="country">Выберите страну</label>
         <div class="picker">
-          <select id="country" v-model="selectedId" class="select">
-            <option value="">— страна не выбрана —</option>
+          <select id="country" v-model="selectedId" class="select" :disabled="loading">
+            <option value="">{{ loading ? 'Загрузка стран…' : '— страна не выбрана —' }}</option>
             <option v-for="c in countries" :key="c.id" :value="c.id">
               {{ c.ru }}
             </option>
@@ -191,6 +210,32 @@ onBeforeUnmount(() => engine && engine.dispose());
   font-size: clamp(13px, 1.5vw, 17px);
   color: var(--text-dim);
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+.data-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 210, 74, 0.12);
+  border: 1px solid rgba(255, 210, 74, 0.4);
+  color: var(--accent-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.data-badge-icon {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* Панель управления */

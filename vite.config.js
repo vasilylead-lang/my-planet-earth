@@ -11,6 +11,7 @@ export default defineConfig({
   },
   build: {
     target: 'es2020',
-    chunkSizeWarningLimit: 900,
+    // данные стран (1:50m, ~1.4 МБ) выносятся в отдельный async-чанк
+    chunkSizeWarningLimit: 1600,
   },
 });

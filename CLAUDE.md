@@ -44,7 +44,10 @@ Vue's reactivity** — never wrap THREE objects in `ref`/`reactive`.
   atmosphere, graticule, all country borders as one `LineSegments`, and the draggable "ghost"
   (highlighted country). Owns the pointer-drag interaction and the render loop.
 - `src/lib/geo.js` — the pure geometry/math (no Three.js, unit-testable in Node).
-- `src/data/countries.js` — generated data module (see below). **Do not hand-edit.**
+- `src/data/countries.js` — generated data module (see below). **Do not hand-edit.** Loaded via
+  a **dynamic `import()`** in `App.vue`'s `onMounted` (Vite splits it into its own async chunk), so
+  the globe shell renders before the ~1.4 MB dataset arrives. It is held in a `shallowRef` — never
+  make the country array deeply reactive (Vue would proxy every polygon vertex).
 - `index.html` — SEO lives here (see "SEO").
 
 ### Coordinate convention
@@ -88,18 +91,21 @@ bug — don't "fix" it by special-casing.
 
 ## Data pipeline
 
-`src/data/countries.js` is generated from **Natural Earth 1:110m Admin-0** (public domain). Each
-entry is `{ id, ru, en, area, centroid, polygons }`:
+`src/data/countries.js` is generated from **Natural Earth 1:50m Admin-0**, release **v5.0.0**
+(published Nov 2021, public domain) — the full set of **242** countries and dependencies, boundaries
+as of 2021. (The earlier 1:110m set had only 177 and omitted small/island states.) Each entry is
+`{ id, ru, en, area, centroid, polygons }`:
 
 - `id` = `ADM0_A3` (always unique — do **not** use `ISO_A2`/`ISO_A3`; they are `-99` for France,
   Norway, Kosovo, etc. and collide).
 - `ru` = `NAME_RU` (Russian display name); `area` = spherical polygon area in km²; coordinates
   rounded to 0.01°.
 
-To regenerate (e.g. to switch to 1:50m for more detail), re-run the processing script that fetches
-`ne_110m_admin_0_countries.geojson`, trims to the fields above, computes area/centroid, and writes
-the module. The preset chips in `App.vue` reference A3 ids (`RUS`, `GRL`, `CAN`, …) — keep them in
-sync with the data.
+To regenerate (e.g. to bump the Natural Earth release, or drop to 1:110m to shrink the payload),
+re-run the processing script that fetches the `ne_50m_admin_0_countries.geojson` for the desired
+release tag, trims to the fields above, computes spherical area/centroid, rounds coords to 0.01°,
+de-duplicates ids, and writes the module. The preset chips in `App.vue` reference A3 ids (`RUS`,
+`GRL`, `CAN`, …) — keep them in sync with the data.
 
 ## SEO
 
