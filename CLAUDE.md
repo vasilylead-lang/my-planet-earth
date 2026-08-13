@@ -116,6 +116,17 @@ Open Graph + Twitter cards, and JSON-LD (`WebSite` + `WebApplication`). `public/
 share image (swap in a raster PNG if you need maximum crawler compatibility, and update the
 `og:image*` tags). If you ever add a second page, add its head block and a `<url>` to the sitemap.
 
+## Analytics and consent
+
+Google Analytics (`G-VL99Y456DV`) and Yandex.Metrika (`111534910`) are **not** in `index.html`.
+They are injected at runtime by `src/lib/legal.js` **only after the visitor consents** — do not
+paste counter snippets into the HTML, that would load them before consent and make the consent
+form a lie. Consent is granular and genuinely wired: `analytics` gates both counters, `webvisor`
+gates Metrika's `webvisor`/`clickmap` session recording (passed straight into `ym(..., 'init')`).
+The choice lives in `localStorage` under `mp-consent-v2`; revoking it after the counters loaded
+triggers a page reload, since scripts cannot be unloaded. `src/components/LegalNotice.vue` is the
+banner + form. The site requests **no** browser permissions (camera/mic/geolocation/notifications).
+
 ## Conventions
 
 Follows the workspace HTML/CSS/JS conventions in `~/CLAUDE.md`: design tokens in `:root`

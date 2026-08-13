@@ -3,7 +3,7 @@ import { ref, shallowRef, computed, watch, onMounted, onBeforeUnmount } from 'vu
 import { GlobeEngine } from './lib/globe.js';
 import { prepareCountry, formatArea, stretchFactor } from './lib/geo.js';
 import LegalNotice from './components/LegalNotice.vue';
-import { openPolicy } from './lib/legal.js';
+import { openPolicy, initConsent } from './lib/legal.js';
 
 const globeEl = ref(null);
 let engine = null;
@@ -61,6 +61,9 @@ function toggleRotate() {
 }
 
 onMounted(async () => {
+  // применяем ранее сохранённое согласие на аналитику
+  initConsent();
+
   // сразу показываем глобус (океан + сетка), пока грузятся данные стран
   engine = new GlobeEngine(globeEl.value);
   engine.init();
