@@ -57,7 +57,7 @@ RSYNC_OPTS=(-rlptz --checksum --human-readable --exclude '.DS_Store')
 # в каталоге сайта лежат файлы, загруженные вручную (иконки и пр.).
 [ "$DELETE" -eq 1 ] && RSYNC_OPTS+=(--delete)
 
-echo "==> rsync${DRY_RUN:+ (пробный запуск)}"
+[ "$DRY_RUN" -eq 1 ] && echo "==> rsync (пробный запуск)" || echo "==> rsync"
 rsync "${RSYNC_OPTS[@]}" -e "ssh -o BatchMode=yes" dist/ "$SSH_HOST:$REMOTE_DIR/"
 
 if [ "$DRY_RUN" -eq 1 ]; then

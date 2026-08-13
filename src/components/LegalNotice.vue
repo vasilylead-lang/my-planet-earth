@@ -91,11 +91,11 @@ import { policyOpen, consentGiven, openPolicy, closePolicy, acceptConsent } from
   gap: 12px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: var(--panel);
+  /* непрозрачный фон: баннер перекрывает панель и заголовок,
+     полупрозрачность делала оба нечитаемыми */
+  background: #0c1630;
   border: 1px solid var(--panel-brd);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
 }
 .cookie-text {
   margin: 0;
