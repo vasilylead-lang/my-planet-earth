@@ -2,6 +2,8 @@
 import { ref, shallowRef, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { GlobeEngine } from './lib/globe.js';
 import { prepareCountry, formatArea, stretchFactor } from './lib/geo.js';
+import LegalNotice from './components/LegalNotice.vue';
+import { openPolicy } from './lib/legal.js';
 
 const globeEl = ref(null);
 let engine = null;
@@ -165,7 +167,13 @@ onBeforeUnmount(() => engine && engine.dispose());
           {{ autoRotate ? '⏸ Остановить вращение' : '▶ Вращать планету' }}
         </button>
       </div>
+
+      <button type="button" class="legal-link" @click="openPolicy">
+        Конфиденциальность и cookie
+      </button>
     </main>
+
+    <LegalNotice />
 
     <footer class="credits">
       Границы: Natural&nbsp;Earth (public&nbsp;domain) · my-planet-earth.ru
@@ -392,6 +400,22 @@ onBeforeUnmount(() => engine && engine.dispose());
 }
 .btn-toggle {
   width: 100%;
+}
+
+.legal-link {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+.legal-link:hover {
+  color: var(--link);
 }
 
 .credits {
